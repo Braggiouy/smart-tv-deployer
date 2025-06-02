@@ -1,3 +1,5 @@
+import { TizenConfig } from "./types/config.types";
+
 export interface TizenConfig {
   sdbPath: string;
   tizenPath: string;
@@ -14,15 +16,13 @@ export function getConfig(): TizenConfig {
   }
 
   const savedConfig = localStorage.getItem("tizenConfig");
-  if (savedConfig) {
-    return JSON.parse(savedConfig);
-  }
-
-  return DEFAULT_CONFIG;
+  return savedConfig ? JSON.parse(savedConfig) : DEFAULT_CONFIG;
 }
 
-export function saveConfig(config: TizenConfig) {
-  if (typeof window !== "undefined") {
-    localStorage.setItem("tizenConfig", JSON.stringify(config));
+export function saveConfig(config: TizenConfig): void {
+  if (typeof window === "undefined") {
+    return;
   }
+
+  localStorage.setItem("tizenConfig", JSON.stringify(config));
 }

@@ -1,31 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { TizenConfig, DEFAULT_CONFIG, getConfig, saveConfig } from "./config";
-
-interface CommandLogs {
-  output?: string;
-  error?: string;
-}
-
-interface DeploymentLogs {
-  connect?: CommandLogs;
-  install?: CommandLogs;
-  launch?: CommandLogs;
-}
-
-interface DeploymentData {
-  ipAddress: string;
-  fileName: string;
-  filePath: string;
-}
-
-interface DeploymentResponse {
-  success: boolean;
-  message: string;
-  data?: DeploymentData;
-  logs?: DeploymentLogs;
-}
+import { TizenConfig } from "./types/config.types";
+import { DEFAULT_CONFIG, getConfig, saveConfig } from "./config";
+import { CommandLogs, DeploymentResponse } from "./types/deployment.types";
 
 export default function Home() {
   const [ipAddress, setIpAddress] = useState("");
