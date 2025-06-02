@@ -1,6 +1,8 @@
+"use client";
+
 import { useState, useEffect } from "react";
 
-function App() {
+export default function Home() {
   const [ipAddress, setIpAddress] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
@@ -44,7 +46,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12">
+    <main className="min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12">
       <div className="relative py-3 sm:max-w-xl sm:mx-auto">
         <div className="relative px-4 py-10 bg-white shadow-lg sm:rounded-3xl sm:p-20">
           <div className="max-w-md mx-auto">
@@ -112,8 +114,6 @@ function App() {
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
-
-export default App;
