@@ -30,7 +30,7 @@ export default function Home() {
     }
   };
 
-  const handleDeploy = () => {
+  const handleDeploy = async () => {
     if (!ipAddress) {
       setLogs((prev) => [...prev, "Error: Please enter a TV IP address"]);
       return;
@@ -39,10 +39,37 @@ export default function Home() {
       setLogs((prev) => [...prev, "Error: Please select a .wgt file"]);
       return;
     }
-    setLogs((prev) => [
-      ...prev,
-      "Deployment functionality will be implemented in the next step",
-    ]);
+
+    try {
+      setLogs((prev) => [...prev, "Starting deployment..."]);
+
+      const formData = new FormData();
+      formData.append("ipAddress", ipAddress);
+      formData.append("wgtFile", selectedFile);
+
+      const response = await fetch("/api/deploy", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setLogs((prev) => [...prev, `Success: ${data.message}`]);
+        setLogs((prev) => [...prev, `File saved at: ${data.data.filePath}`]);
+      } else {
+        setLogs((prev) => [...prev, `Error: ${data.message}`]);
+      }
+    } catch (error) {
+      setLogs((prev) => [
+        ...prev,
+        `Error: ${
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred"
+        }`,
+      ]);
+    }
   };
 
   return (
@@ -65,7 +92,7 @@ export default function Home() {
                     value={ipAddress}
                     onChange={handleIpChange}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    placeholder="Enter TV IP address"
+                    placeholder="e.g., 192.168.1.100"
                   />
                 </div>
 
@@ -74,39 +101,54 @@ export default function Home() {
                     htmlFor="file-upload"
                     className="block text-sm font-medium text-gray-700"
                   >
-                    Upload .wgt File
+                    Select .wgt Application File
                   </label>
-                  <input
-                    type="file"
-                    id="file-upload"
-                    accept=".wgt"
-                    onChange={handleFileChange}
-                    className="mt-1 block w-full text-sm text-gray-500
-                      file:mr-4 file:py-2 file:px-4
-                      file:rounded-md file:border-0
-                      file:text-sm file:font-semibold
-                      file:bg-indigo-50 file:text-indigo-700
-                      hover:file:bg-indigo-100"
-                  />
+                  <div className="mt-1 flex items-center">
+                    <label
+                      htmlFor="file-upload"
+                      className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
+                    >
+                      <span className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Choose File
+                      </span>
+                      <input
+                        id="file-upload"
+                        name="file-upload"
+                        type="file"
+                        accept=".wgt"
+                        onChange={handleFileChange}
+                        className="sr-only"
+                      />
+                    </label>
+                    <span className="ml-3 text-sm text-gray-500">
+                      {selectedFile ? selectedFile.name : "No file chosen"}
+                    </span>
+                  </div>
                 </div>
 
                 <button
                   onClick={handleDeploy}
                   className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
-                  Deploy
+                  Deploy to TV
                 </button>
 
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Deployment Logs
+                    Deployment Status
                   </label>
-                  <div className="bg-gray-50 rounded-md p-4 h-48 overflow-y-auto">
-                    {logs.map((log, index) => (
-                      <div key={index} className="text-sm text-gray-600">
-                        {log}
+                  <div className="bg-gray-50 rounded-md p-4 h-48 overflow-y-auto font-mono text-sm">
+                    {logs.length === 0 ? (
+                      <div className="text-gray-400 italic">
+                        No deployment activity yet
                       </div>
-                    ))}
+                    ) : (
+                      logs.map((log, index) => (
+                        <div key={index} className="text-gray-600 mb-1">
+                          {log}
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
