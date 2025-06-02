@@ -6,6 +6,7 @@ export default function Home() {
   const [ipAddress, setIpAddress] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
+  const [isDeploying, setIsDeploying] = useState(false);
 
   useEffect(() => {
     // Load IP address from localStorage on component mount
@@ -41,6 +42,7 @@ export default function Home() {
     }
 
     try {
+      setIsDeploying(true);
       setLogs((prev) => [...prev, "Starting deployment..."]);
 
       const formData = new FormData();
@@ -55,21 +57,27 @@ export default function Home() {
       const data = await response.json();
 
       if (response.ok) {
-        setLogs((prev) => [...prev, `Success: ${data.message}`]);
-        setLogs((prev) => [...prev, `File saved at: ${data.data.filePath}`]);
+        setLogs((prev) => [...prev, "✅ Deployment successful!"]);
+        setLogs((prev) => [...prev, `📁 File saved at: ${data.data.filePath}`]);
       } else {
-        setLogs((prev) => [...prev, `Error: ${data.message}`]);
+        setLogs((prev) => [...prev, `❌ Error: ${data.message}`]);
       }
     } catch (error) {
       setLogs((prev) => [
         ...prev,
-        `Error: ${
+        `❌ Error: ${
           error instanceof Error
             ? error.message
             : "An unexpected error occurred"
         }`,
       ]);
+    } finally {
+      setIsDeploying(false);
     }
+  };
+
+  const clearLogs = () => {
+    setLogs([]);
   };
 
   return (
@@ -128,15 +136,30 @@ export default function Home() {
 
                 <button
                   onClick={handleDeploy}
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  disabled={isDeploying}
+                  className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+                    isDeploying
+                      ? "bg-indigo-400 cursor-not-allowed"
+                      : "bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  }`}
                 >
-                  Deploy to TV
+                  {isDeploying ? "Deploying..." : "Deploy to TV"}
                 </button>
 
                 <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Deployment Status
-                  </label>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Deployment Status
+                    </label>
+                    {logs.length > 0 && (
+                      <button
+                        onClick={clearLogs}
+                        className="text-sm text-indigo-600 hover:text-indigo-500"
+                      >
+                        Clear logs
+                      </button>
+                    )}
+                  </div>
                   <div className="bg-gray-50 rounded-md p-4 h-48 overflow-y-auto font-mono text-sm">
                     {logs.length === 0 ? (
                       <div className="text-gray-400 italic">
