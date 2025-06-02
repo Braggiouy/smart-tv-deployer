@@ -12,38 +12,23 @@ async function runCommand(
   args: string[]
 ): Promise<CommandResult> {
   return new Promise((resolve) => {
-    console.log(`Executing command: ${command} ${args.join(" ")}`);
     const process = spawn(command, args);
     let output = "";
     let error = "";
 
     process.stdout.on("data", (data) => {
-      const dataStr = data.toString();
-      console.log(`Command stdout: ${dataStr}`);
-      output += dataStr;
+      output += data.toString();
     });
 
     process.stderr.on("data", (data) => {
-      const dataStr = data.toString();
-      console.log(`Command stderr: ${dataStr}`);
-      error += dataStr;
+      error += data.toString();
     });
 
     process.on("close", (code) => {
-      console.log(`Command exited with code: ${code}`);
       resolve({
         success: code === 0,
         output: output.trim(),
         error: error.trim(),
-      });
-    });
-
-    process.on("error", (err) => {
-      console.error(`Command error: ${err.message}`);
-      resolve({
-        success: false,
-        output: output.trim(),
-        error: err.message,
       });
     });
   });
@@ -51,36 +36,26 @@ async function runCommand(
 
 export async function POST(request: Request) {
   try {
-    const { ipAddress, sdbPath } = await request.json();
+    const { ipAddress, sdbPath, tizenPath } = await request.json();
 
-    if (!ipAddress || !sdbPath) {
+    if (!ipAddress || !sdbPath || !tizenPath) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "IP address and SDB path are required",
-        },
+        { message: "IP address, SDB path, and Tizen path are required" },
         { status: 400 }
       );
     }
 
-    // Execute sdb connect command
+    // Connect to the TV
     const connectResult = await runCommand(sdbPath, ["connect", ipAddress]);
 
-    // Check if the connection was successful
-    if (
-      !connectResult.success ||
-      connectResult.error ||
-      !connectResult.output.includes("connected") ||
-      connectResult.output.includes("failed to connect")
-    ) {
+    if (!connectResult.success) {
       return NextResponse.json(
         {
-          success: false,
           message: "Failed to connect to TV",
           logs: {
             connect: {
+              error: connectResult.error,
               output: connectResult.output,
-              error: connectResult.error || "Connection failed",
             },
           },
         },
@@ -89,21 +64,18 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      success: true,
       message: "Successfully connected to TV",
       logs: {
         connect: {
           output: connectResult.output,
-          error: connectResult.error,
         },
       },
     });
   } catch (error) {
-    console.error("Error testing connection:", error);
+    console.error("Error in test-connection:", error);
     return NextResponse.json(
       {
-        success: false,
-        message: "Error testing connection",
+        message: "An error occurred while testing the connection",
         error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }

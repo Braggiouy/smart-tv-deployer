@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { TizenConfig, DEFAULT_CONFIG, getConfig, saveConfig } from "./config";
 
 interface CommandLogs {
@@ -34,6 +34,15 @@ export default function Home() {
   const [isDeploying, setIsDeploying] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [config, setConfig] = useState<TizenConfig>(DEFAULT_CONFIG);
+  const logsEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [logs]);
 
   useEffect(() => {
     // Load saved configuration
@@ -223,150 +232,144 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-700 py-6 flex flex-col justify-center sm:py-12">
-      <div className="relative py-3 sm:max-w-xl sm:mx-auto">
-        <div className="relative px-4 py-10 bg-white shadow-lg sm:rounded-3xl sm:p-20">
-          <div className="max-w-md mx-auto">
-            <div className="divide-y divide-gray-200">
-              <div className="py-8 text-base leading-6 space-y-4 text-gray-700 sm:text-lg sm:leading-7">
-                <div className="mb-4">
-                  <label
-                    htmlFor="sdb-path"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    SDB Path
-                  </label>
-                  <input
-                    type="text"
-                    id="sdb-path"
-                    value={config.sdbPath}
-                    onChange={(e) =>
-                      handleConfigChange("sdbPath", e.target.value)
-                    }
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    placeholder="Path to sdb executable"
-                  />
-                </div>
+    <main className="min-h-screen bg-gray-700 flex items-center justify-center p-4">
+      <div className="w-full max-w-2xl">
+        <div className="bg-white shadow-lg rounded-3xl p-4 sm:p-6 md:p-8">
+          <div className="space-y-4">
+            <div className="mb-4">
+              <label
+                htmlFor="sdb-path"
+                className="block text-sm font-medium text-gray-700"
+              >
+                SDB Path
+              </label>
+              <input
+                type="text"
+                id="sdb-path"
+                value={config.sdbPath}
+                onChange={(e) => handleConfigChange("sdbPath", e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-gray-900"
+                placeholder="Path to sdb executable"
+              />
+            </div>
 
-                <div className="mb-4">
-                  <label
-                    htmlFor="tizen-path"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Tizen Path
-                  </label>
-                  <input
-                    type="text"
-                    id="tizen-path"
-                    value={config.tizenPath}
-                    onChange={(e) =>
-                      handleConfigChange("tizenPath", e.target.value)
-                    }
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    placeholder="Path to tizen executable"
-                  />
-                </div>
+            <div className="mb-4">
+              <label
+                htmlFor="tizen-path"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Tizen Path
+              </label>
+              <input
+                type="text"
+                id="tizen-path"
+                value={config.tizenPath}
+                onChange={(e) =>
+                  handleConfigChange("tizenPath", e.target.value)
+                }
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-gray-900"
+                placeholder="Path to tizen executable"
+              />
+            </div>
 
-                <div className="mb-4">
-                  <label
-                    htmlFor="ip-address"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Samsung TV IP Address
-                  </label>
-                  <div className="mt-1 flex items-center space-x-2">
-                    <input
-                      type="text"
-                      id="ip-address"
-                      value={ipAddress}
-                      onChange={handleIpChange}
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                      placeholder="e.g., 192.168.1.100"
-                    />
-                    <button
-                      onClick={testConnection}
-                      disabled={isTestingConnection}
-                      className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${
-                        isTestingConnection
-                          ? "bg-indigo-400 cursor-not-allowed"
-                          : "bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                      }`}
-                    >
-                      {isTestingConnection ? "Testing..." : "Test Connection"}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <label
-                    htmlFor="file-upload"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Select .wgt Application File
-                  </label>
-                  <div className="mt-1 flex items-center">
-                    <label
-                      htmlFor="file-upload"
-                      className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
-                    >
-                      <span className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        Choose File
-                      </span>
-                      <input
-                        id="file-upload"
-                        name="file-upload"
-                        type="file"
-                        accept=".wgt"
-                        onChange={handleFileChange}
-                        className="sr-only"
-                      />
-                    </label>
-                    <span className="ml-3 text-sm text-gray-500">
-                      {selectedFile ? selectedFile.name : "No file chosen"}
-                    </span>
-                  </div>
-                </div>
-
+            <div className="mb-4">
+              <label
+                htmlFor="ip-address"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Samsung TV IP Address
+              </label>
+              <div className="mt-1 flex items-center space-x-2">
+                <input
+                  type="text"
+                  id="ip-address"
+                  value={ipAddress}
+                  onChange={handleIpChange}
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-gray-900"
+                  placeholder="e.g., 192.168.1.100"
+                />
                 <button
-                  onClick={handleDeploy}
-                  disabled={isDeploying}
-                  className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-                    isDeploying
+                  onClick={testConnection}
+                  disabled={isTestingConnection}
+                  className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${
+                    isTestingConnection
                       ? "bg-indigo-400 cursor-not-allowed"
                       : "bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   }`}
                 >
-                  {isDeploying ? "Deploying..." : "Deploy to TV"}
+                  {isTestingConnection ? "Testing..." : "Test Connection"}
                 </button>
+              </div>
+            </div>
 
-                <div className="mt-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Deployment Status
-                    </label>
-                    {logs.length > 0 && (
-                      <button
-                        onClick={clearLogs}
-                        className="text-sm text-indigo-600 hover:text-indigo-500"
-                      >
-                        Clear logs
-                      </button>
-                    )}
+            <div className="mb-4">
+              <label
+                htmlFor="file-upload"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Select .wgt Application File
+              </label>
+              <div className="mt-1 flex items-center">
+                <label
+                  htmlFor="file-upload"
+                  className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
+                >
+                  <span className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Choose File
+                  </span>
+                  <input
+                    id="file-upload"
+                    name="file-upload"
+                    type="file"
+                    accept=".wgt"
+                    onChange={handleFileChange}
+                    className="sr-only"
+                  />
+                </label>
+                <span className="ml-3 text-sm text-gray-500">
+                  {selectedFile ? selectedFile.name : "No file chosen"}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={handleDeploy}
+              disabled={isDeploying}
+              className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+                isDeploying
+                  ? "bg-indigo-400 cursor-not-allowed"
+                  : "bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              }`}
+            >
+              {isDeploying ? "Deploying..." : "Deploy to TV"}
+            </button>
+
+            <div className="mt-4">
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Deployment Status
+                </label>
+                {logs.length > 0 && (
+                  <button
+                    onClick={clearLogs}
+                    className="text-sm text-indigo-600 hover:text-indigo-500"
+                  >
+                    Clear logs
+                  </button>
+                )}
+              </div>
+              <div className="bg-gray-50 rounded-md p-4 h-32 sm:h-40 md:h-48 overflow-y-auto font-mono text-sm">
+                {logs.length === 0 ? (
+                  <div className="text-gray-400 italic">
+                    No deployment activity yet
                   </div>
-                  <div className="bg-gray-50 rounded-md p-4 h-48 overflow-y-auto font-mono text-sm">
-                    {logs.length === 0 ? (
-                      <div className="text-gray-400 italic">
-                        No deployment activity yet
-                      </div>
-                    ) : (
-                      logs.map((log, index) => (
-                        <div key={index} className="text-gray-600 mb-1">
-                          {log}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+                ) : (
+                  logs.map((log, index) => (
+                    <div key={index} className="text-gray-600 mb-1">
+                      {log}
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
