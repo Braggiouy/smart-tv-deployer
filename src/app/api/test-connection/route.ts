@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
-import { writeFile } from "fs/promises";
-import { join } from "path";
-import { tmpdir } from "os";
 import { spawn } from "child_process";
 
 const SDB_PATH = "/Users/baggierni/tizen-studio/tools/sdb";
-const TIZEN_PATH = "/Users/baggierni/tizen-studio/tools/ide/bin/tizen";
 
 interface CommandResult {
   success: boolean;
@@ -55,57 +51,22 @@ async function runCommand(
   });
 }
 
-// Disable the default body parser
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
 export async function POST(request: Request) {
   try {
-    const formData = await request.formData();
-    const ipAddress = formData.get("ipAddress");
-    const file = formData.get("wgtFile") as File;
+    const { ipAddress } = await request.json();
 
-    if (!ipAddress || !file) {
+    if (!ipAddress) {
       return NextResponse.json(
         {
           success: false,
-          message: "IP address and .wgt file are required",
+          message: "IP address is required",
         },
         { status: 400 }
       );
     }
-
-    // Validate file extension
-    if (!file.name.endsWith(".wgt")) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Only .wgt files are allowed",
-        },
-        { status: 400 }
-      );
-    }
-
-    // Create a temporary directory
-    const tmpDir = join(tmpdir(), "smart-tv-deployer");
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    // Create a unique filename
-    const uniqueFilename = `${Date.now()}-${file.name}`;
-    const filePath = join(tmpDir, uniqueFilename);
-
-    // Save the file
-    await writeFile(filePath, buffer);
 
     // Execute sdb connect command
-    const connectResult = await runCommand(SDB_PATH, [
-      "connect",
-      ipAddress as string,
-    ]);
+    const connectResult = await runCommand(SDB_PATH, ["connect", ipAddress]);
 
     // Check if the connection was successful
     if (
@@ -129,40 +90,22 @@ export async function POST(request: Request) {
       );
     }
 
-    // Execute tizen install command
-    const installResult = await runCommand(TIZEN_PATH, [
-      "install",
-      "-n",
-      filePath,
-    ]);
-
     return NextResponse.json({
-      success: installResult.success,
-      message: installResult.success
-        ? "Deployment successful"
-        : "Deployment failed",
-      data: {
-        ipAddress,
-        fileName: file.name,
-        filePath,
-      },
+      success: true,
+      message: "Successfully connected to TV",
       logs: {
         connect: {
           output: connectResult.output,
           error: connectResult.error,
         },
-        install: {
-          output: installResult.output,
-          error: installResult.error,
-        },
       },
     });
   } catch (error) {
-    console.error("Error processing upload:", error);
+    console.error("Error testing connection:", error);
     return NextResponse.json(
       {
         success: false,
-        message: "Error processing upload",
+        message: "Error testing connection",
         error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }

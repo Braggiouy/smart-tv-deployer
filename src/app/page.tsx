@@ -2,11 +2,35 @@
 
 import { useState, useEffect } from "react";
 
+interface CommandLogs {
+  output?: string;
+  error?: string;
+}
+
+interface DeploymentLogs {
+  connect?: CommandLogs;
+  install?: CommandLogs;
+}
+
+interface DeploymentData {
+  ipAddress: string;
+  fileName: string;
+  filePath: string;
+}
+
+interface DeploymentResponse {
+  success: boolean;
+  message: string;
+  data?: DeploymentData;
+  logs?: DeploymentLogs;
+}
+
 export default function Home() {
   const [ipAddress, setIpAddress] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
   const [isDeploying, setIsDeploying] = useState(false);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
 
   useEffect(() => {
     // Load IP address from localStorage on component mount
@@ -20,6 +44,51 @@ export default function Home() {
     const newIp = e.target.value;
     setIpAddress(newIp);
     localStorage.setItem("tvIpAddress", newIp);
+  };
+
+  const testConnection = async () => {
+    if (!ipAddress) {
+      setLogs((prev) => [...prev, "Error: Please enter a TV IP address"]);
+      return;
+    }
+
+    try {
+      setIsTestingConnection(true);
+      setLogs((prev) => [...prev, "Testing connection to TV..."]);
+
+      const response = await fetch("/api/test-connection", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ipAddress }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setLogs((prev) => [...prev, "✅ Successfully connected to TV!"]);
+        if (data.logs?.connect?.output) {
+          setLogs((prev) => [...prev, data.logs.connect.output]);
+        }
+      } else {
+        setLogs((prev) => [...prev, `❌ Error: ${data.message}`]);
+        if (data.logs?.connect?.error) {
+          setLogs((prev) => [...prev, `⚠️ ${data.logs.connect.error}`]);
+        }
+      }
+    } catch (error) {
+      setLogs((prev) => [
+        ...prev,
+        `❌ Error: ${
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred"
+        }`,
+      ]);
+    } finally {
+      setIsTestingConnection(false);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,13 +123,55 @@ export default function Home() {
         body: formData,
       });
 
-      const data = await response.json();
+      const data = (await response.json()) as DeploymentResponse;
 
-      if (response.ok) {
+      if (response.ok && data.data) {
+        const deploymentData = data.data;
         setLogs((prev) => [...prev, "✅ Deployment successful!"]);
-        setLogs((prev) => [...prev, `📁 File saved at: ${data.data.filePath}`]);
+        setLogs((prev) => [
+          ...prev,
+          `📁 File saved at: ${deploymentData.filePath}`,
+        ]);
+
+        // Display connection logs
+        const connectLogs = data.logs?.connect;
+        if (connectLogs) {
+          setLogs((prev) => [...prev, "\n🔌 Connection Logs:"]);
+          if (connectLogs.output) {
+            setLogs((prev) => [...prev, connectLogs.output as string]);
+          }
+          if (connectLogs.error) {
+            setLogs((prev) => [...prev, `⚠️ ${connectLogs.error as string}`]);
+          }
+        }
+
+        // Display installation logs
+        const installLogs = data.logs?.install;
+        if (installLogs) {
+          setLogs((prev) => [...prev, "\n📦 Installation Logs:"]);
+          if (installLogs.output) {
+            setLogs((prev) => [...prev, installLogs.output as string]);
+          }
+          if (installLogs.error) {
+            setLogs((prev) => [...prev, `⚠️ ${installLogs.error as string}`]);
+          }
+        }
       } else {
         setLogs((prev) => [...prev, `❌ Error: ${data.message}`]);
+        // Display error logs if available
+        if (data.logs) {
+          Object.entries(data.logs).forEach(
+            ([command, logs]: [string, CommandLogs]) => {
+              if (logs.error) {
+                setLogs((prev) => [
+                  ...prev,
+                  `\n⚠️ ${command} error:`,
+                  logs.error as string,
+                ]);
+              }
+            }
+          );
+        }
       }
     } catch (error) {
       setLogs((prev) => [
@@ -94,14 +205,27 @@ export default function Home() {
                   >
                     Samsung TV IP Address
                   </label>
-                  <input
-                    type="text"
-                    id="ip-address"
-                    value={ipAddress}
-                    onChange={handleIpChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    placeholder="e.g., 192.168.1.100"
-                  />
+                  <div className="mt-1 flex items-center space-x-2">
+                    <input
+                      type="text"
+                      id="ip-address"
+                      value={ipAddress}
+                      onChange={handleIpChange}
+                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      placeholder="e.g., 192.168.1.100"
+                    />
+                    <button
+                      onClick={testConnection}
+                      disabled={isTestingConnection}
+                      className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${
+                        isTestingConnection
+                          ? "bg-indigo-400 cursor-not-allowed"
+                          : "bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      }`}
+                    >
+                      {isTestingConnection ? "Testing..." : "Test Connection"}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mb-4">
