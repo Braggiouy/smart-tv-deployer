@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { spawn } from "child_process";
 
-const SDB_PATH = "/Users/baggierni/tizen-studio/tools/sdb";
-
 interface CommandResult {
   success: boolean;
   output: string;
@@ -53,20 +51,20 @@ async function runCommand(
 
 export async function POST(request: Request) {
   try {
-    const { ipAddress } = await request.json();
+    const { ipAddress, sdbPath } = await request.json();
 
-    if (!ipAddress) {
+    if (!ipAddress || !sdbPath) {
       return NextResponse.json(
         {
           success: false,
-          message: "IP address is required",
+          message: "IP address and SDB path are required",
         },
         { status: 400 }
       );
     }
 
     // Execute sdb connect command
-    const connectResult = await runCommand(SDB_PATH, ["connect", ipAddress]);
+    const connectResult = await runCommand(sdbPath, ["connect", ipAddress]);
 
     // Check if the connection was successful
     if (

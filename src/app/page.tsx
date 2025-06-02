@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { TizenConfig, DEFAULT_CONFIG, getConfig, saveConfig } from "./config";
 
 interface CommandLogs {
   output?: string;
@@ -10,6 +11,7 @@ interface CommandLogs {
 interface DeploymentLogs {
   connect?: CommandLogs;
   install?: CommandLogs;
+  launch?: CommandLogs;
 }
 
 interface DeploymentData {
@@ -31,14 +33,25 @@ export default function Home() {
   const [logs, setLogs] = useState<string[]>([]);
   const [isDeploying, setIsDeploying] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [config, setConfig] = useState<TizenConfig>(DEFAULT_CONFIG);
 
   useEffect(() => {
-    // Load IP address from localStorage on component mount
+    // Load saved configuration
+    const savedConfig = getConfig();
+    setConfig(savedConfig);
+
+    // Load IP address from localStorage
     const savedIp = localStorage.getItem("tvIpAddress");
     if (savedIp) {
       setIpAddress(savedIp);
     }
   }, []);
+
+  const handleConfigChange = (key: keyof TizenConfig, value: string) => {
+    const newConfig = { ...config, [key]: value };
+    setConfig(newConfig);
+    saveConfig(newConfig);
+  };
 
   const handleIpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newIp = e.target.value;
@@ -61,7 +74,11 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ipAddress }),
+        body: JSON.stringify({
+          ipAddress,
+          sdbPath: config.sdbPath,
+          tizenPath: config.tizenPath,
+        }),
       });
 
       const data = await response.json();
@@ -117,6 +134,8 @@ export default function Home() {
       const formData = new FormData();
       formData.append("ipAddress", ipAddress);
       formData.append("wgtFile", selectedFile);
+      formData.append("sdbPath", config.sdbPath);
+      formData.append("tizenPath", config.tizenPath);
 
       const response = await fetch("/api/deploy", {
         method: "POST",
@@ -156,6 +175,18 @@ export default function Home() {
             setLogs((prev) => [...prev, `⚠️ ${installLogs.error as string}`]);
           }
         }
+
+        // Display launch logs
+        const launchLogs = data.logs?.launch;
+        if (launchLogs) {
+          setLogs((prev) => [...prev, "\n🚀 Launch Logs:"]);
+          if (launchLogs.output) {
+            setLogs((prev) => [...prev, launchLogs.output as string]);
+          }
+          if (launchLogs.error) {
+            setLogs((prev) => [...prev, `⚠️ ${launchLogs.error as string}`]);
+          }
+        }
       } else {
         setLogs((prev) => [...prev, `❌ Error: ${data.message}`]);
         // Display error logs if available
@@ -192,12 +223,50 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12">
+    <main className="min-h-screen bg-gray-700 py-6 flex flex-col justify-center sm:py-12">
       <div className="relative py-3 sm:max-w-xl sm:mx-auto">
         <div className="relative px-4 py-10 bg-white shadow-lg sm:rounded-3xl sm:p-20">
           <div className="max-w-md mx-auto">
             <div className="divide-y divide-gray-200">
               <div className="py-8 text-base leading-6 space-y-4 text-gray-700 sm:text-lg sm:leading-7">
+                <div className="mb-4">
+                  <label
+                    htmlFor="sdb-path"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    SDB Path
+                  </label>
+                  <input
+                    type="text"
+                    id="sdb-path"
+                    value={config.sdbPath}
+                    onChange={(e) =>
+                      handleConfigChange("sdbPath", e.target.value)
+                    }
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    placeholder="Path to sdb executable"
+                  />
+                </div>
+
+                <div className="mb-4">
+                  <label
+                    htmlFor="tizen-path"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Tizen Path
+                  </label>
+                  <input
+                    type="text"
+                    id="tizen-path"
+                    value={config.tizenPath}
+                    onChange={(e) =>
+                      handleConfigChange("tizenPath", e.target.value)
+                    }
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    placeholder="Path to tizen executable"
+                  />
+                </div>
+
                 <div className="mb-4">
                   <label
                     htmlFor="ip-address"

@@ -4,9 +4,6 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { spawn } from "child_process";
 
-const SDB_PATH = "/Users/baggierni/tizen-studio/tools/sdb";
-const TIZEN_PATH = "/Users/baggierni/tizen-studio/tools/ide/bin/tizen";
-
 interface CommandResult {
   success: boolean;
   output: string;
@@ -67,12 +64,14 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const ipAddress = formData.get("ipAddress");
     const file = formData.get("wgtFile") as File;
+    const sdbPath = formData.get("sdbPath") as string;
+    const tizenPath = formData.get("tizenPath") as string;
 
-    if (!ipAddress || !file) {
+    if (!ipAddress || !file || !sdbPath || !tizenPath) {
       return NextResponse.json(
         {
           success: false,
-          message: "IP address and .wgt file are required",
+          message: "IP address, .wgt file, and Tizen paths are required",
         },
         { status: 400 }
       );
@@ -102,18 +101,12 @@ export async function POST(request: Request) {
     await writeFile(filePath, buffer);
 
     // Execute sdb connect command
-    const connectResult = await runCommand(SDB_PATH, [
+    const connectResult = await runCommand(sdbPath, [
       "connect",
       ipAddress as string,
     ]);
 
-    // Check if the connection was successful
-    if (
-      !connectResult.success ||
-      connectResult.error ||
-      !connectResult.output.includes("connected") ||
-      connectResult.output.includes("failed to connect")
-    ) {
+    if (!connectResult.success) {
       return NextResponse.json(
         {
           success: false,
@@ -121,7 +114,7 @@ export async function POST(request: Request) {
           logs: {
             connect: {
               output: connectResult.output,
-              error: connectResult.error || "Connection failed",
+              error: connectResult.error,
             },
           },
         },
@@ -130,17 +123,64 @@ export async function POST(request: Request) {
     }
 
     // Execute tizen install command
-    const installResult = await runCommand(TIZEN_PATH, [
+    const installResult = await runCommand(tizenPath, [
       "install",
       "-n",
       filePath,
     ]);
 
+    if (!installResult.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Failed to install app",
+          logs: {
+            connect: {
+              output: connectResult.output,
+              error: connectResult.error,
+            },
+            install: {
+              output: installResult.output,
+              error: installResult.error,
+            },
+          },
+        },
+        { status: 500 }
+      );
+    }
+
+    // Extract package ID from installation logs
+    const packageIdMatch = installResult.output.match(
+      /Installed the package: Id\(([^)]+)\)/
+    );
+    const packageId = packageIdMatch ? packageIdMatch[1] : null;
+
+    if (!packageId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Failed to extract package ID from installation logs",
+          logs: {
+            connect: {
+              output: connectResult.output,
+              error: connectResult.error,
+            },
+            install: {
+              output: installResult.output,
+              error: installResult.error,
+            },
+          },
+        },
+        { status: 500 }
+      );
+    }
+
+    // Launch the app after successful installation
+    const launchResult = await runCommand(tizenPath, ["run", "-p", packageId]);
+
     return NextResponse.json({
-      success: installResult.success,
-      message: installResult.success
-        ? "Deployment successful"
-        : "Deployment failed",
+      success: true,
+      message: "Deployment successful",
       data: {
         ipAddress,
         fileName: file.name,
@@ -154,6 +194,10 @@ export async function POST(request: Request) {
         install: {
           output: installResult.output,
           error: installResult.error,
+        },
+        launch: {
+          output: launchResult.output,
+          error: launchResult.error,
         },
       },
     });
