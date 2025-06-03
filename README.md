@@ -10,6 +10,7 @@ A modern web application for deploying Tizen applications to Samsung Smart TVs. 
 - 📝 **Detailed Logging**: Real-time logs for connection, installation, and launch processes
 - 💾 **Configuration Persistence**: Saves TV IP address and tool paths for future use
 - 🎨 **Modern UI**: Clean and responsive interface built with Next.js and Tailwind CSS
+- 🔄 **Step-by-Step Process**: Clear workflow from configuration to deployment
 
 ## Prerequisites
 
@@ -17,6 +18,7 @@ A modern web application for deploying Tizen applications to Samsung Smart TVs. 
 - [Tizen Studio](https://developer.tizen.org/development/tizen-studio/download) installed
 - A Samsung Smart TV with Developer Mode enabled
 - The TV and your computer must be on the same network
+- A pre-built Tizen project (this tool does not handle the build process)
 
 ## Installation
 
@@ -66,19 +68,28 @@ A modern web application for deploying Tizen applications to Samsung Smart TVs. 
 
 ## Usage
 
-1. **Connect to TV**:
-   - Enter your TV's IP address
-   - Click "Test Connection" to verify connectivity
-   - A successful connection will be indicated in the logs
+The application follows a step-by-step process:
 
-2. **Deploy Application**:
-   - Click "Choose File" to select your `.wgt` file
-   - Click "Deploy to TV" to start the deployment process
-   - Monitor the progress in the logs section
+1. **Configuration Step**:
+   - Configure SDB and Tizen paths
+   - Enter TV IP address
+   - Test the connection
+   - Click "Next: Build Application" to proceed
 
-3. **View Logs**:
+2. **Build Step**:
+   - Enter the path to your pre-built Tizen project
+   - Click "Generate WGT Package" to create the WGT file
+   - The WGT file will be created directly in your project directory
+   - Click "Next: Deploy" to proceed
+
+3. **Deploy Step**:
+   - Choose between "Debug as Tizen Web Application" or "Run as Tizen Web Application"
+   - Monitor the deployment progress in the logs section
+   - The application will be installed and launched on your TV
+
+4. **View Logs**:
    - All operations are logged in real-time
-   - Logs include connection status, installation progress, and launch information
+   - Logs include packaging, connection, installation, and launch information
    - Use the "Clear logs" button to reset the log display
 
 ## Development
@@ -90,10 +101,17 @@ smart-tv-deployer/
 ├── src/
 │   ├── app/
 │   │   ├── api/
-│   │   │   ├── deploy/
+│   │   │   ├── debug/
+│   │   │   │   └── route.ts
+│   │   │   ├── generate-wgt/
+│   │   │   │   └── route.ts
+│   │   │   ├── run/
 │   │   │   │   └── route.ts
 │   │   │   └── test-connection/
 │   │   │       └── route.ts
+│   │   ├── utils/
+│   │   │   ├── index.ts
+│   │   │   └── types.ts
 │   │   ├── config.ts
 │   │   └── page.tsx
 │   └── ...
@@ -103,10 +121,14 @@ smart-tv-deployer/
 
 ### Key Components
 
-- `page.tsx`: Main application UI and logic
+- `page.tsx`: Main application UI with step-by-step process
 - `config.ts`: Configuration management
-- `api/deploy/route.ts`: Deployment API endpoint
-- `api/test-connection/route.ts`: Connection testing API endpoint
+- `utils/`: Shared utilities and types
+- API Routes:
+  - `debug/route.ts`: Debug application deployment
+  - `generate-wgt/route.ts`: WGT package generation
+  - `run/route.ts`: Run application deployment
+  - `test-connection/route.ts`: TV connection testing
 
 ### Building for Production
 
@@ -125,7 +147,7 @@ npm start
    - Check if Developer Mode is enabled on the TV
 
 2. **Deployment Failed**:
-   - Verify the `.wgt` file is valid
+   - Verify your Tizen project is properly built
    - Check if the TV has enough storage space
    - Ensure the application is compatible with your TV's Tizen version
 
@@ -133,6 +155,39 @@ npm start
    - Verify the paths to `sdb` and `tizen` executables
    - Use absolute paths
    - Check file permissions
+
+4. **WGT Generation Failed**:
+   - Ensure your Tizen project is properly built
+   - Verify all required files are present (config.xml, index.html, .tproject)
+   - Check project path is correct
+
+## Next Steps
+
+1. **Error Handling Improvements**:
+   - Add more detailed error messages
+   - Implement retry mechanisms for failed operations
+   - Add validation for TV compatibility
+
+2. **UI Enhancements**:
+   - Add progress indicators for long-running operations
+   - Implement dark mode
+   - Add keyboard shortcuts
+
+3. **Feature Additions**:
+   - Support for multiple TV connections
+   - Batch deployment capabilities
+   - Application version management
+   - TV compatibility checking
+
+4. **Testing**:
+   - Add unit tests for utility functions
+   - Implement integration tests
+   - Add end-to-end testing
+
+5. **Documentation**:
+   - Add API documentation
+   - Create user guides
+   - Add troubleshooting guides
 
 ## Contributing
 
