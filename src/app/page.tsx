@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { TizenConfig } from "./types/config.types";
 import { DEFAULT_CONFIG, getConfig, saveConfig } from "./config";
-import { CommandLogs, DeploymentResponse } from "./types/deployment.types";
 
 export default function Home() {
   const [ipAddress, setIpAddress] = useState("");
@@ -171,6 +170,8 @@ export default function Home() {
         body: JSON.stringify({
           projectPath,
           tizenPath: config.tizenPath,
+          sdbPath: config.sdbPath,
+          ipAddress,
         }),
       });
 
@@ -178,14 +179,35 @@ export default function Home() {
 
       if (response.ok) {
         setLogs((prev) => [...prev, "✅ Running started successfully!"]);
+        if (data.logs?.build?.output) {
+          setLogs((prev) => [...prev, data.logs.build.output]);
+        }
+        if (data.logs?.package?.output) {
+          setLogs((prev) => [...prev, data.logs.package.output]);
+        }
+        if (data.logs?.connect?.output) {
+          setLogs((prev) => [...prev, data.logs.connect.output]);
+        }
+        if (data.logs?.install?.output) {
+          setLogs((prev) => [...prev, data.logs.install.output]);
+        }
         if (data.logs?.run?.output) {
           setLogs((prev) => [...prev, data.logs.run.output]);
         }
-        if (data.logs?.run?.error) {
-          setLogs((prev) => [...prev, `⚠️ ${data.logs.run.error}`]);
-        }
       } else {
         setLogs((prev) => [...prev, `❌ Error: ${data.message}`]);
+        if (data.logs?.build?.error) {
+          setLogs((prev) => [...prev, `⚠️ ${data.logs.build.error}`]);
+        }
+        if (data.logs?.package?.error) {
+          setLogs((prev) => [...prev, `⚠️ ${data.logs.package.error}`]);
+        }
+        if (data.logs?.connect?.error) {
+          setLogs((prev) => [...prev, `⚠️ ${data.logs.connect.error}`]);
+        }
+        if (data.logs?.install?.error) {
+          setLogs((prev) => [...prev, `⚠️ ${data.logs.install.error}`]);
+        }
         if (data.logs?.run?.error) {
           setLogs((prev) => [...prev, `⚠️ ${data.logs.run.error}`]);
         }

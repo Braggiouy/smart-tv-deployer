@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Connect to the TV
+    // First, try to connect to the TV
     const connectResult = await runCommand(sdbPath, ["connect", ipAddress]);
 
     if (!connectResult.success) {
@@ -63,11 +63,56 @@ export async function POST(request: Request) {
       );
     }
 
+    // Then, verify the connection by listing devices
+    const devicesResult = await runCommand(sdbPath, ["devices"]);
+
+    if (!devicesResult.success) {
+      return NextResponse.json(
+        {
+          message: "Failed to verify connection",
+          logs: {
+            connect: {
+              output: connectResult.output,
+            },
+            devices: {
+              error: devicesResult.error,
+              output: devicesResult.output,
+            },
+          },
+        },
+        { status: 500 }
+      );
+    }
+
+    // Check if our IP address is in the devices list
+    const isConnected = devicesResult.output.includes(ipAddress);
+
+    if (!isConnected) {
+      return NextResponse.json(
+        {
+          message: "Failed to connect to TV",
+          logs: {
+            connect: {
+              output: connectResult.output,
+            },
+            devices: {
+              output: devicesResult.output,
+              error: "TV not found in connected devices",
+            },
+          },
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({
       message: "Successfully connected to TV",
       logs: {
         connect: {
           output: connectResult.output,
+        },
+        devices: {
+          output: devicesResult.output,
         },
       },
     });
